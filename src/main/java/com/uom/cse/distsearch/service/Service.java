@@ -128,7 +128,7 @@ public class Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public Response results(@NotNull Result result) {
-        LOGGER.info("Movies found at {} are {} after {} hops", result.getOwner(), result.getMovies(), result.getHops());
+        LOGGER.info("Movies found at {} are {} after {} hops with {} millis", result.getOwner(), result.getMovies(), result.getHops(), (System.currentTimeMillis() - result.getTimestamp()));
         return Response.status(Response.Status.OK).entity("OK").build();
     }
 }

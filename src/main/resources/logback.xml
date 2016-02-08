@@ -10,7 +10,7 @@
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${catalina.base}/logs/contra.log</file>
+        <file>${catalina.base}/logs/distributed.log</file>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
@@ -18,7 +18,9 @@
 
     <root level="DEBUG">
         <appender-ref ref="STDOUT"/>
-        <appender-ref ref="FILE"/>
     </root>
 
+    <root level="INFO">
+        <appender-ref ref="FILE"/>
+    </root>
 </configuration>

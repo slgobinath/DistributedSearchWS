@@ -84,6 +84,7 @@ public class Node {
         result.setOwner(currentNodeInfo);
         result.setMovies(results);
         result.setHops(0);
+        result.setTimestamp(info.getTimestamp());
 
         LOGGER.debug("RESULTS: {}", results);
         // Send the results
@@ -115,6 +116,7 @@ public class Node {
         result.setOwner(currentNodeInfo);
         result.setMovies(results);
         result.setHops(query.getHops());
+        result.setTimestamp(info.getTimestamp());
 
         LOGGER.debug("RESULTS: {}", results);
         // Send the results

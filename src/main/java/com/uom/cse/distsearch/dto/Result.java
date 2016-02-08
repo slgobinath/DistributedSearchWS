@@ -10,6 +10,7 @@ public class Result implements Serializable {
     private NodeInfo owner;
     private List<String> movies;
     private int hops;
+    private long timestamp;
 
     public NodeInfo getOwner() {
         return owner;
@@ -33,5 +34,13 @@ public class Result implements Serializable {
 
     public void setHops(int hops) {
         this.hops = hops;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
     }
 }
