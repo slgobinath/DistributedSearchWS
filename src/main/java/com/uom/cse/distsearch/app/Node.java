@@ -252,14 +252,18 @@ public class Node {
         new Thread() {
             @Override
             public void run() {
-                WebTarget target = ClientBuilder.newClient().target(url);
-                Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
-                Response response = builder.post(Entity.json(object));
-                int status = response.getStatus();
-                LOGGER.debug("Status: {}", status);
-                Object str = response.getEntity();
-                LOGGER.debug("Message: {}", str);
-                response.close();
+                try {
+                    WebTarget target = ClientBuilder.newClient().target(url);
+                    Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
+                    Response response = builder.post(Entity.json(object));
+                    int status = response.getStatus();
+                    LOGGER.debug("Status: {}", status);
+                    Object str = response.getEntity();
+                    LOGGER.debug("Message: {}", str);
+                    response.close();
+                } catch (Exception ex) {
+                    LOGGER.error("Exception in sending request", ex.getMessage());
+                }
             }
         }.start();
     }
