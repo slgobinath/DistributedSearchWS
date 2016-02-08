@@ -21,7 +21,7 @@ public class Constant {
 
     public static final String ERROR = "ERROR";
 
-    public static final String BOOTSTRAP_HOST = "0.0.0.0";
+    public static final String BOOTSTRAP_HOST = "192.248.15.229";
 
     public static final int BOOTSTRAP_PORT = 8888;
 }

@@ -118,20 +118,22 @@ public class Node {
                         post(nodeInfo.url() + "join", new NodeInfo(ip, port));
                         break;
 
-                    case 2:
-                        NodeInfo nodeA = new NodeInfo(tokenizer.nextToken(), Integer.parseInt(tokenizer.nextToken()));
-                        NodeInfo nodeB = new NodeInfo(tokenizer.nextToken(), Integer.parseInt(tokenizer.nextToken()));
+                    default:
 
-                        LOGGER.info("More than 2 nodes registered");
+                        LOGGER.info("{} nodes registered", no_nodes);
+                        for (int i = 0; i < no_nodes; i++) {
+                            String host = tokenizer.nextToken();
+                            String hostPost = tokenizer.nextToken();
+                            String userID = tokenizer.nextToken();
 
-                        // JOIN to node A
-                        join(nodeA);
-                        post(nodeA.url() + "join", new NodeInfo(ip, port));
+                            LOGGER.info(String.format("%s:%s - %s", ip, port, userID));
 
-                        // JOIN to node B
-                        join(nodeB);
-                        post(nodeB.url() + "join", new NodeInfo(ip, port));
+                            NodeInfo node = new NodeInfo(ip, Integer.parseInt(hostPost), userID);
 
+                            join(node);
+                            LOGGER.info(peerList.toString());
+                            post(node.url() + "join", new NodeInfo(ip, port));
+                        }
                         break;
 
                     case 9996:

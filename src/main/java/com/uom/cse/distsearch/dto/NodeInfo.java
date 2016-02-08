@@ -43,7 +43,7 @@ public class NodeInfo implements Serializable {
     }
 
     public String url() {
-        return String.format("http://$s:$d/distsearch/node/service/", ip, port);
+        return String.format("http://%s:%d/distsearch/node/service/", ip, port);
     }
 
     @Override
