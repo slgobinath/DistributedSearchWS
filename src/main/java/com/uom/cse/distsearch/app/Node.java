@@ -150,11 +150,11 @@ public class Node {
                     case 0:
                         // This is the first node registered to the BootstrapServer.
                         // Do nothing
-                        LOGGER.info("First node registered");
+                        LOGGER.debug("First node registered");
                         break;
 
                     case 1:
-                        LOGGER.info("Second node registered");
+                        LOGGER.debug("Second node registered");
                         String ipAddress = tokenizer.nextToken();
                         int portNumber = Integer.parseInt(tokenizer.nextToken());
 
@@ -166,7 +166,7 @@ public class Node {
 
                     default:
 
-                        LOGGER.info("{} nodes registered", no_nodes);
+                        LOGGER.debug("{} nodes registered", no_nodes);
                         List<NodeInfo> returnedNodes = new ArrayList<>();
 
                         // Select random 2 nodes
@@ -175,7 +175,7 @@ public class Node {
                             String hostPost = tokenizer.nextToken();
                             String userID = tokenizer.nextToken();
 
-                            LOGGER.info(String.format("%s:%s - %s", host, hostPost, userID));
+                            LOGGER.debug(String.format("%s:%s - %s", host, hostPost, userID));
 
                             NodeInfo node = new NodeInfo(host, Integer.parseInt(hostPost), userID);
                             returnedNodes.add(node);
