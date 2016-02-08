@@ -3,6 +3,7 @@ package com.uom.cse.distsearch.app;
 import com.uom.cse.distsearch.dto.NodeInfo;
 import com.uom.cse.distsearch.dto.Query;
 import com.uom.cse.distsearch.dto.QueryInfo;
+import com.uom.cse.distsearch.dto.Result;
 import com.uom.cse.distsearch.util.Constant;
 import com.uom.cse.distsearch.util.MovieList;
 import com.uom.cse.distsearch.util.Utility;
@@ -34,17 +35,21 @@ public class Node {
 
     private final List<QueryInfo> queryList = new ArrayList<>();
 
+    private NodeInfo currentNodeInfo;
+
     private static class InstanceHolder {
-    	private static Node instance = new Node();
+        private static Node instance = new Node();
     }
-    private Node(){}
-    
+
+    private Node() {
+    }
+
     public static Node getInstance() {
-    	return InstanceHolder.instance;
+        return InstanceHolder.instance;
     }
-    
+
     public synchronized void join(NodeInfo info) {
-    	LOGGER.debug("INFO: {}", info);
+        LOGGER.debug("INFO: {}", info);
         if (!peerList.contains(info)) {
             peerList.add(info);
         }
@@ -86,19 +91,27 @@ public class Node {
         MovieList movieList = MovieList.getInstance(context);
         List<String> results = movieList.search(info.getQuery());
 
+        Result result = new Result();
+        result.setOwner(currentNodeInfo);
+        result.setMovies(results);
+
+        LOGGER.debug("RESULTS: {}", results);
         // Send the results
-        post(info.getOrigin().url() + "results", results);
+        post(info.getOrigin().url() + "results", result);
 
         // Increase the number of hops by 1
         query.setHops(query.getHops() + 1);
         for (NodeInfo peer : peerList) {
             if (!peer.equals(sender)) {
+                LOGGER.debug("Sending request to {}", peer);
                 post(peer.url() + "search", query);
             }
         }
     }
 
     public synchronized boolean connect(String ip, int port, String username) {
+        this.currentNodeInfo = new NodeInfo(ip, port, username);
+
         String message = String.format(" REG %s %d %s", ip, port, username);
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
@@ -176,6 +189,7 @@ public class Node {
     }
 
     public synchronized boolean disconnect(String ip, int port, String username) {
+        this.currentNodeInfo = null;
         NodeInfo me = new NodeInfo(ip, port);
         for (NodeInfo peer : peerList) {
             //send leave msg
@@ -204,16 +218,20 @@ public class Node {
         return peerList;
     }
 
-    public void post(String url, Object object) {
+    public void post(final String url, final Object object) {
         LOGGER.debug("URL: {}", url);
-        WebTarget target = ClientBuilder.newClient().target(url);
-        Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
-        Response response = builder.post(Entity.json(object));
-        int status = response.getStatus();
-        LOGGER.debug("Status: {}", status);
-        Object str = response.getEntity();
-        LOGGER.debug("Message: {}", str);
-        response.close();
-
+        new Thread() {
+            @Override
+            public void run() {
+                WebTarget target = ClientBuilder.newClient().target(url);
+                Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
+                Response response = builder.post(Entity.json(object));
+                int status = response.getStatus();
+                LOGGER.debug("Status: {}", status);
+                Object str = response.getEntity();
+                LOGGER.debug("Message: {}", str);
+                response.close();
+            }
+        }.start();
     }
 }

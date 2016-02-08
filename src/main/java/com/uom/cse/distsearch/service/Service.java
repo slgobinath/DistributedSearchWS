@@ -106,10 +106,9 @@ public class Service {
     }
 
     @Path("/searchuser/{ip}")
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
+    @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public Response searchuser(@NotNull @PathParam("ip") String ip, @PathParam("query") String query) {
+    public Response searchuser(@NotNull @PathParam("ip") String ip, @NotNull @QueryParam("query") String query) {
         LOGGER.debug("Request to search {}", query);
         node.startSearch(ip, httpRequest.getLocalPort(), query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();
@@ -127,8 +126,10 @@ public class Service {
 
     @Path("/results")
     @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public Response results(@NotNull Result result) {
         LOGGER.info("Movies found at {} are {}", result.getOwner(), result.getMovies());
-        return Response.status(Response.Status.OK).build();
+        return Response.status(Response.Status.OK).entity("OK").build();
     }
 }
