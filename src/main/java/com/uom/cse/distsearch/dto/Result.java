@@ -9,6 +9,7 @@ import java.util.List;
 public class Result implements Serializable {
     private NodeInfo owner;
     private List<String> movies;
+    private int hops;
 
     public NodeInfo getOwner() {
         return owner;
@@ -24,5 +25,13 @@ public class Result implements Serializable {
 
     public void setMovies(List<String> movies) {
         this.movies = movies;
+    }
+
+    public int getHops() {
+        return hops;
+    }
+
+    public void setHops(int hops) {
+        this.hops = hops;
     }
 }

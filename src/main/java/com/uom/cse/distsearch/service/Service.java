@@ -10,8 +10,6 @@ import com.uom.cse.distsearch.util.MovieList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
@@ -19,6 +17,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.List;
 
 /**
  * @author gobinath
@@ -72,13 +71,13 @@ public class Service {
         return Response.status(status).build();
     }
 
-    @Path("/disconnect/{ip}/{username}")
+    @Path("/disconnect")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response disconnect(@NotNull @PathParam("ip") String ip, @NotNull @PathParam("username") String username) {
+    public Response disconnect() {
         LOGGER.debug("Request to disconnect from the bootstrap server");
         Response.Status status = Response.Status.OK;
-        if (!node.disconnect(ip, httpRequest.getLocalPort(), username)) {
+        if (!node.disconnect()) {
             status = Response.Status.INTERNAL_SERVER_ERROR;
         }
         // Disconnect from the Bootstrap
@@ -105,12 +104,12 @@ public class Service {
         return Response.status(Response.Status.OK).entity(Constant.LEAVEOK).build();
     }
 
-    @Path("/searchuser/{ip}")
+    @Path("/searchuser")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public Response searchuser(@NotNull @PathParam("ip") String ip, @NotNull @QueryParam("query") String query) {
         LOGGER.debug("Request to search {}", query);
-        node.startSearch(ip, httpRequest.getLocalPort(), query);
+        node.startSearch(context, query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();
     }
 
@@ -129,7 +128,7 @@ public class Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public Response results(@NotNull Result result) {
-        LOGGER.info("Movies found at {} are {}", result.getOwner(), result.getMovies());
+        LOGGER.info("Movies found at {} are {} after {} hops", result.getOwner(), result.getMovies(), result.getHops());
         return Response.status(Response.Status.OK).entity("OK").build();
     }
 }

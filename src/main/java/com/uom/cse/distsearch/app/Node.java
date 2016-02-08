@@ -18,7 +18,10 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.StringTokenizer;
 
 /**
  * @author gobinath
@@ -59,17 +62,35 @@ public class Node {
     }
 
 
-    public synchronized void startSearch(String ip, int port, String name) {
+    public synchronized void startSearch(ServletContext context, String name) {
+        // Construct the repository
         QueryInfo info = new QueryInfo();
-        info.setOrigin(new NodeInfo(ip, port));
+        info.setOrigin(currentNodeInfo);
         info.setQuery(name);
         info.setTimestamp(System.currentTimeMillis());
 
         Query query = new Query();
         query.setHops(0);
-        query.setSender(new NodeInfo(ip, port));
+        query.setSender(currentNodeInfo);
         query.setQueryInfo(info);
 
+
+        // Search within myself
+        NodeInfo sender = query.getSender();
+        MovieList movieList = MovieList.getInstance(context);
+        List<String> results = movieList.search(info.getQuery());
+
+        Result result = new Result();
+        result.setOwner(currentNodeInfo);
+        result.setMovies(results);
+        result.setHops(0);
+
+        LOGGER.debug("RESULTS: {}", results);
+        // Send the results
+        post(info.getOrigin().url() + "results", result);
+
+
+        // Spread to the peers
         for (NodeInfo peer : peerList) {
             post(peer.url() + "search", query);
         }
@@ -197,15 +218,13 @@ public class Node {
         }
     }
 
-    public synchronized boolean disconnect(String ip, int port, String username) {
-        this.currentNodeInfo = null;
-        NodeInfo me = new NodeInfo(ip, port);
+    public synchronized boolean disconnect() {
         for (NodeInfo peer : peerList) {
             //send leave msg
-            post(peer.url() + "leave", me);
+            post(peer.url() + "leave", currentNodeInfo);
         }
 
-        String message = String.format(" UNREG %s %d %s", ip, port, username);
+        String message = String.format(" UNREG %s %d %s", currentNodeInfo.getIp(), currentNodeInfo.getPort(), currentNodeInfo.getUsername());
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
             String result = Utility.sendTcpToBootstrapServer(message, Constant.BOOTSTRAP_HOST, Constant.BOOTSTRAP_PORT);
