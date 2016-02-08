@@ -107,7 +107,7 @@ public class Service {
     @Path("/searchuser")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
-    public Response searchuser(@NotNull @PathParam("ip") String ip, @NotNull @QueryParam("query") String query) {
+    public Response searchuser(@NotNull @QueryParam("query") String query) {
         LOGGER.debug("Request to search {}", query);
         node.startSearch(context, query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();

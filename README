@@ -1,3 +1,11 @@
-http://localhost:8080/node/service/connect/gobi
+http://localhost:8080/distsearch/node/service/connect/{ip}/{username}
 
-http://localhost:8080/node/service/disconnect/gobi
+http://localhost:8080/distsearch/node/service/disconnect
+
+http://localhost:8080/distsearch/node/service/movies
+
+http://localhost:8080/distsearch/node/service/peers
+
+http://localhost:8080/distsearch/node/service/disconnect
+
+http://localhost:8080/distsearch/node/service/searchuser?query=movie
