@@ -6,6 +6,10 @@ public class NodeInfo implements Serializable {
     private String ip;
     private int port;
     private String username;
+    
+    public NodeInfo() {
+		// TODO Auto-generated constructor stub
+	}
 
     public NodeInfo(String ip, int port) {
         this.ip = ip;

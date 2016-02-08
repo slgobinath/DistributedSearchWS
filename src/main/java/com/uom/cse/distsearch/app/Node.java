@@ -34,18 +34,29 @@ public class Node {
 
     private final List<QueryInfo> queryList = new ArrayList<>();
 
-    public void join(NodeInfo info) {
+    private static class InstanceHolder {
+    	private static Node instance = new Node();
+    }
+    private Node(){}
+    
+    public static Node getInstance() {
+    	return InstanceHolder.instance;
+    }
+    
+    public synchronized void join(NodeInfo info) {
+    	LOGGER.debug("INFO: {}", info);
         if (!peerList.contains(info)) {
             peerList.add(info);
         }
+        LOGGER.debug("PEERS: {}", peerList.toString());
     }
 
-    public void leave(NodeInfo info) {
+    public synchronized void leave(NodeInfo info) {
         peerList.remove(info);
     }
 
 
-    public void startSearch(String ip, int port, String name) {
+    public synchronized void startSearch(String ip, int port, String name) {
         QueryInfo info = new QueryInfo();
         info.setOrigin(new NodeInfo(ip, port));
         info.setQuery(name);
@@ -61,7 +72,7 @@ public class Node {
         }
     }
 
-    public void search(ServletContext context, Query query) {
+    public synchronized void search(ServletContext context, Query query) {
         QueryInfo info = query.getQueryInfo();
 
         if (queryList.contains(info)) {
@@ -87,7 +98,7 @@ public class Node {
         }
     }
 
-    public boolean connect(String ip, int port, String username) {
+    public synchronized boolean connect(String ip, int port, String username) {
         String message = String.format(" REG %s %d %s", ip, port, username);
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
@@ -126,9 +137,9 @@ public class Node {
                             String hostPost = tokenizer.nextToken();
                             String userID = tokenizer.nextToken();
 
-                            LOGGER.info(String.format("%s:%s - %s", ip, port, userID));
+                            LOGGER.info(String.format("%s:%s - %s", host, hostPost, userID));
 
-                            NodeInfo node = new NodeInfo(ip, Integer.parseInt(hostPost), userID);
+                            NodeInfo node = new NodeInfo(host, Integer.parseInt(hostPost), userID);
 
                             join(node);
                             LOGGER.info(peerList.toString());
@@ -164,7 +175,7 @@ public class Node {
         }
     }
 
-    public boolean disconnect(String ip, int port, String username) {
+    public synchronized boolean disconnect(String ip, int port, String username) {
         NodeInfo me = new NodeInfo(ip, port);
         for (NodeInfo peer : peerList) {
             //send leave msg
@@ -189,13 +200,20 @@ public class Node {
         }
     }
 
-    public List<NodeInfo> getPeers() {
+    public synchronized List<NodeInfo> getPeers() {
         return peerList;
     }
 
     public void post(String url, Object object) {
+        LOGGER.debug("URL: {}", url);
         WebTarget target = ClientBuilder.newClient().target(url);
-        Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON_TYPE);
+        Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
         Response response = builder.post(Entity.json(object));
+        int status = response.getStatus();
+        LOGGER.debug("Status: {}", status);
+        Object str = response.getEntity();
+        LOGGER.debug("Message: {}", str);
+        response.close();
+
     }
 }

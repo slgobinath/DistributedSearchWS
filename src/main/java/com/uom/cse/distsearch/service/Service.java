@@ -10,6 +10,8 @@ import com.uom.cse.distsearch.util.MovieList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotNull;
@@ -34,7 +36,7 @@ public class Service {
     @Context
     private HttpServletRequest httpRequest;
 
-    private Node node = new Node();
+    private Node node = Node.getInstance();
 
 
     @Path("/movies")
@@ -51,7 +53,9 @@ public class Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response listPeers() {
         LOGGER.debug("Request to list the connected peers");
-        return Response.status(Response.Status.OK).entity(node.getPeers()).build();
+        List<NodeInfo> lst = node.getPeers();
+        LOGGER.debug("PEERS {}", lst.toString());
+        return Response.status(Response.Status.OK).entity(lst).build();
     }
 
     @Path("/connect/{ip}/{username}")
@@ -84,7 +88,7 @@ public class Service {
     @Path("/join")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public Response join(@NotNull NodeInfo nodeInfo) {
         LOGGER.debug("Request to join from {}", nodeInfo);
         node.join(nodeInfo);
@@ -94,7 +98,7 @@ public class Service {
     @Path("/leave")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public Response leave(@NotNull NodeInfo nodeInfo) {
         LOGGER.debug("Request to leave from {}", nodeInfo);
         node.leave(nodeInfo);
@@ -104,7 +108,7 @@ public class Service {
     @Path("/searchuser/{ip}")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public Response searchuser(@NotNull @PathParam("ip") String ip, @PathParam("query") String query) {
         LOGGER.debug("Request to search {}", query);
         node.startSearch(ip, httpRequest.getLocalPort(), query);
@@ -114,7 +118,7 @@ public class Service {
     @Path("/search")
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.TEXT_PLAIN)
     public Response search(@NotNull Query query) {
         LOGGER.debug("Request to search {} from {}", query.getQueryInfo().getQuery(), query.getSender());
         node.search(context, query);

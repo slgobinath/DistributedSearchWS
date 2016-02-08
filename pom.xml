@@ -81,6 +81,12 @@
             <version>${logback.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.5</version>
+        </dependency>
+
     </dependencies>
     <build>
         <finalName>distsearch</finalName>
