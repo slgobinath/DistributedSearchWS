@@ -106,6 +106,7 @@ public class Node {
             queryList.add(info);
         }
 
+        query.setHops(query.getHops() + 1);
         NodeInfo sender = query.getSender();
         MovieList movieList = MovieList.getInstance(context);
         List<String> results = movieList.search(info.getQuery());
@@ -113,13 +114,13 @@ public class Node {
         Result result = new Result();
         result.setOwner(currentNodeInfo);
         result.setMovies(results);
+        result.setHops(query.getHops());
 
         LOGGER.debug("RESULTS: {}", results);
         // Send the results
         post(info.getOrigin().url() + "results", result);
 
         // Increase the number of hops by 1
-        query.setHops(query.getHops() + 1);
         for (NodeInfo peer : peerList) {
             if (!peer.equals(sender)) {
                 LOGGER.debug("Sending request to {}", peer);
