@@ -18,9 +18,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * @author gobinath
@@ -145,6 +143,9 @@ public class Node {
                     default:
 
                         LOGGER.info("{} nodes registered", no_nodes);
+                        List<NodeInfo> returnedNodes = new ArrayList<>();
+
+                        // Select random 2 nodes
                         for (int i = 0; i < no_nodes; i++) {
                             String host = tokenizer.nextToken();
                             String hostPost = tokenizer.nextToken();
@@ -153,11 +154,19 @@ public class Node {
                             LOGGER.info(String.format("%s:%s - %s", host, hostPost, userID));
 
                             NodeInfo node = new NodeInfo(host, Integer.parseInt(hostPost), userID);
-
-                            join(node);
-                            LOGGER.info(peerList.toString());
-                            post(node.url() + "join", new NodeInfo(ip, port));
+                            returnedNodes.add(node);
                         }
+
+                        Collections.shuffle(returnedNodes);
+
+                        NodeInfo nodeA = returnedNodes.get(0);
+                        NodeInfo nodeB = returnedNodes.get(1);
+
+                        join(nodeA);
+                        post(nodeA.url() + "join", currentNodeInfo);
+
+                        join(nodeB);
+                        post(nodeB.url() + "join", currentNodeInfo);
                         break;
 
                     case 9996:
