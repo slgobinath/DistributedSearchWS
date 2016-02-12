@@ -18,10 +18,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * @author gobinath
@@ -53,20 +50,54 @@ public class Node {
         return InstanceHolder.instance;
     }
 
+
     public synchronized void join(NodeInfo info) {
-        LOGGER.debug("INFO: {}", info);
+        // Validation
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
+
+        Objects.requireNonNull(info, "NodeInfo cannot be null");
+
+        if (Objects.equals(info.getIp(), currentNodeInfo.getIp()) && info.getPort() == currentNodeInfo.getPort()) {
+            throw new IllegalArgumentException("Cannot add this node as a peer of itself");
+        }
+
+        LOGGER.debug("Adding {} as a peer of {}", info, currentNodeInfo);
         if (!peerList.contains(info)) {
             peerList.add(info);
         }
-        LOGGER.debug("PEERS: {}", peerList.toString());
     }
 
     public synchronized void leave(NodeInfo info) {
+        // Validation
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
+
+        Objects.requireNonNull(info, "NodeInfo cannot be null");
+
+        LOGGER.debug("Removing {} from the peer list of {}", info, currentNodeInfo);
         peerList.remove(info);
     }
 
 
-    public synchronized void startSearch(ServletContext context, String name) {
+    public synchronized void startSearch(MovieList movieList, String name) {
+        // Validation
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
+
+        Objects.requireNonNull(movieList, "MovieList cannot be null");
+
+        Objects.requireNonNull(name, "Name cannot be null");
+
+        if ("".equals(name.trim())) {
+            throw new IllegalArgumentException("Name cannot be empty");
+        }
+
+        LOGGER.debug("Searching for {} on {}", name, currentNodeInfo);
+
         // Construct the repository
         QueryInfo info = new QueryInfo();
         info.setOrigin(currentNodeInfo);
@@ -81,7 +112,6 @@ public class Node {
 
         // Search within myself
         NodeInfo sender = query.getSender();
-        MovieList movieList = MovieList.getInstance(context);
         List<String> results = movieList.search(info.getQuery());
 
         Result result = new Result();
@@ -90,10 +120,8 @@ public class Node {
         result.setHops(0);
         result.setTimestamp(info.getTimestamp());
 
-        LOGGER.debug("RESULTS: {}", results);
         // Send the results
         post(info.getOrigin().url() + "results", result);
-
 
         // Spread to the peers
         for (NodeInfo peer : peerList) {
@@ -101,8 +129,18 @@ public class Node {
         }
     }
 
-    public synchronized void search(ServletContext context, Query query) {
+    public synchronized void search(MovieList movieList, Query query) {
+        // Validation
+
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
+
+        Objects.requireNonNull(query, "Query cannot be null");
+
         QueryInfo info = query.getQueryInfo();
+
+        Objects.requireNonNull(query, "QueryInfo of the given query cannot be null");
 
         if (queryList.contains(info)) {
             // Duplicate query
@@ -111,9 +149,11 @@ public class Node {
             queryList.add(info);
         }
 
+        // Increase the number of hops by one
         query.setHops(query.getHops() + 1);
+
         NodeInfo sender = query.getSender();
-        MovieList movieList = MovieList.getInstance(context);
+
         List<String> results = movieList.search(info.getQuery());
 
         Result result = new Result();
@@ -122,11 +162,10 @@ public class Node {
         result.setHops(query.getHops());
         result.setTimestamp(info.getTimestamp());
 
-        LOGGER.debug("RESULTS: {}", results);
         // Send the results
         post(info.getOrigin().url() + "results", result);
 
-        // Increase the number of hops by 1
+        // Spread to the peers
         for (NodeInfo peer : peerList) {
             if (!peer.equals(sender)) {
                 LOGGER.debug("Sending request to {}", peer);
@@ -135,12 +174,25 @@ public class Node {
         }
     }
 
-    public synchronized boolean connect(String serverIP, int serverPort, String ip, int port, String username) {
+    public synchronized boolean connect(String serverIP, int serverPort, String nodeIP, int port, String username) {
+        // Validate
+        Objects.requireNonNull(serverIP, "Bootstrap server ip cannot be null");
+        Objects.requireNonNull(nodeIP, "Node ip cannot be null");
+        Objects.requireNonNull(username, "Username cannot be null");
+
+        if("".equals(serverIP.trim())) {
+            throw new IllegalArgumentException("Bootstrap server ip cannot be empty");
+        }
+
+        if("".equals(nodeIP.trim())) {
+            throw new IllegalArgumentException("Node ip cannot be empty");
+        }
+
         this.bootstrapHost = serverIP;
         this.bootstrapPort = serverPort;
-        this.currentNodeInfo = new NodeInfo(ip, port, username);
+        this.currentNodeInfo = new NodeInfo(nodeIP, port, username);
 
-        String message = String.format(" REG %s %d %s", ip, port, username);
+        String message = String.format(" REG %s %d %s", nodeIP, port, username);
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
             String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
@@ -169,7 +221,7 @@ public class Node {
                         NodeInfo nodeInfo = new NodeInfo(ipAddress, portNumber, userName);
                         // JOIN to first node
                         join(nodeInfo);
-                        post(nodeInfo.url() + "join", new NodeInfo(ip, port));
+                        post(nodeInfo.url() + "join", new NodeInfo(nodeIP, port));
                         break;
 
                     default:
@@ -230,6 +282,9 @@ public class Node {
     }
 
     public synchronized boolean disconnect() {
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
         // Update other nodes
         final int peerSize = peerList.size();
         for (int i = 0; i < peerSize; i++) {
@@ -272,10 +327,13 @@ public class Node {
     }
 
     public synchronized List<NodeInfo> getPeers() {
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is registered in the bootstrap server");
+        }
         return peerList;
     }
 
-    public void post(final String url, final Object object) {
+    private void post(final String url, final Object object) {
         LOGGER.debug("URL: {}", url);
         new Thread() {
             @Override

@@ -23,11 +23,11 @@ public class MovieList {
 
     private List<String> movies = new ArrayList<String>();
 
-    public static MovieList getInstance(ServletContext context) {
+    public static MovieList getInstance(String path) {
         if (instance == null) {
             synchronized (MovieList.class) {
                 if (instance == null) {
-                    instance = new MovieList(context.getRealPath("/WEB-INF/movies.txt"));
+                    instance = new MovieList(path);
                 }
             }
         }

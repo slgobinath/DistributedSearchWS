@@ -18,6 +18,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author gobinath
@@ -42,7 +43,7 @@ public class Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response listMovies() {
         LOGGER.debug("Request to list the selected movies");
-        MovieList movieList = MovieList.getInstance(context);
+        MovieList movieList = MovieList.getInstance(context.getRealPath("/WEB-INF/movies.txt"));
         return Response.status(Response.Status.OK).entity(movieList.getSelectedMovies()).build();
     }
 
@@ -108,7 +109,8 @@ public class Service {
     @Produces(MediaType.TEXT_PLAIN)
     public Response searchuser(@NotNull @QueryParam("query") String query) {
         LOGGER.debug("Request to search {}", query);
-        node.startSearch(context, query);
+        MovieList movieList = MovieList.getInstance(context.getRealPath("/WEB-INF/movies.txt"));
+        node.startSearch(movieList, query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();
     }
 
@@ -118,7 +120,8 @@ public class Service {
     @Produces(MediaType.TEXT_PLAIN)
     public Response search(@NotNull @Encoded Query query) {
         LOGGER.debug("Request to search {} from {}", query.getQueryInfo().getQuery(), query.getSender());
-        node.search(context, query);
+        MovieList movieList = MovieList.getInstance(context.getRealPath("/WEB-INF/movies.txt"));
+        node.search(movieList, query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();
     }
 
