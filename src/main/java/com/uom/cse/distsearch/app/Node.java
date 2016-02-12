@@ -53,14 +53,16 @@ public class Node {
 
     public synchronized void join(NodeInfo info) {
         // Validation
-        if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+        if (Objects.isNull(info)) {
+            throw new IllegalArgumentException("NodeInfo cannot be null");
         }
-
-        Objects.requireNonNull(info, "NodeInfo cannot be null");
-
         if (Objects.equals(info.getIp(), currentNodeInfo.getIp()) && info.getPort() == currentNodeInfo.getPort()) {
             throw new IllegalArgumentException("Cannot add this node as a peer of itself");
+        }
+
+        // State check
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
         }
 
         LOGGER.debug("Adding {} as a peer of {}", info, currentNodeInfo);
@@ -71,11 +73,14 @@ public class Node {
 
     public synchronized void leave(NodeInfo info) {
         // Validation
-        if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+        if (Objects.isNull(info)) {
+            throw new IllegalArgumentException("NodeInfo cannot be null");
         }
 
-        Objects.requireNonNull(info, "NodeInfo cannot be null");
+        // State check
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
+        }
 
         LOGGER.debug("Removing {} from the peer list of {}", info, currentNodeInfo);
         peerList.remove(info);
@@ -84,16 +89,18 @@ public class Node {
 
     public synchronized void startSearch(MovieList movieList, String name) {
         // Validation
-        if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+        if (Objects.isNull(movieList)) {
+            throw new IllegalArgumentException("MovieList cannot be null");
         }
 
-        Objects.requireNonNull(movieList, "MovieList cannot be null");
+        if (Objects.isNull(name) || "".equals(name.trim())) {
+            throw new IllegalArgumentException("Name cannot be null or empty");
+        }
 
-        Objects.requireNonNull(name, "Name cannot be null");
 
-        if ("".equals(name.trim())) {
-            throw new IllegalArgumentException("Name cannot be empty");
+        // State check
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
         }
 
         LOGGER.debug("Searching for {} on {}", name, currentNodeInfo);
@@ -134,16 +141,16 @@ public class Node {
 
     public synchronized void search(MovieList movieList, Query query) {
         // Validation
-
-        if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+        if (Objects.isNull(query) || Objects.isNull(query.getQueryInfo())) {
+            throw new IllegalArgumentException("Query or QueryInfo of this query cannot be null");
         }
 
-        Objects.requireNonNull(query, "Query cannot be null");
+        // State check
+        if (Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
+        }
 
         QueryInfo info = query.getQueryInfo();
-
-        Objects.requireNonNull(query, "QueryInfo of the given query cannot be null");
 
         if (queryList.contains(info)) {
             // Duplicate query
@@ -179,16 +186,25 @@ public class Node {
 
     public synchronized boolean connect(String serverIP, int serverPort, String nodeIP, int port, String username) {
         // Validate
-        Objects.requireNonNull(serverIP, "Bootstrap server ip cannot be null");
-        Objects.requireNonNull(nodeIP, "Node ip cannot be null");
-        Objects.requireNonNull(username, "Username cannot be null");
-
+        if (Objects.isNull(serverIP)) {
+            throw new IllegalArgumentException("Bootstrap server ip cannot be null");
+        }
+        if (Objects.isNull(nodeIP)) {
+            throw new IllegalArgumentException("Node ip cannot be null");
+        }
+        if (Objects.isNull(username) || "".equals(username.trim())) {
+            throw new IllegalArgumentException("username cannot be null or empty");
+        }
         if (!IPAddressValidator.validate(serverIP)) {
             throw new IllegalArgumentException("Bootstrap server ip is not valid");
         }
-
         if (!IPAddressValidator.validate(nodeIP)) {
             throw new IllegalArgumentException("Node ip is not valid");
+        }
+
+        // State check
+        if (!Objects.isNull(currentNodeInfo)) {
+            throw new InvalidStateException("Node is already registered.");
         }
 
         this.bootstrapHost = serverIP;
@@ -287,8 +303,9 @@ public class Node {
     }
 
     public synchronized boolean disconnect() {
+        // State check
         if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
         }
 
         // Update other nodes
@@ -326,8 +343,9 @@ public class Node {
     }
 
     public synchronized List<NodeInfo> getPeers() {
+        // State check
         if (Objects.isNull(currentNodeInfo)) {
-            throw new InvalidStateException("Node is registered in the bootstrap server");
+            throw new InvalidStateException("Node is not registered in the bootstrap server");
         }
         return peerList;
     }
