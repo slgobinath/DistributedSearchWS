@@ -5,12 +5,12 @@ import com.uom.cse.distsearch.dto.Query;
 import com.uom.cse.distsearch.dto.QueryInfo;
 import com.uom.cse.distsearch.dto.Result;
 import com.uom.cse.distsearch.util.Constant;
+import com.uom.cse.distsearch.util.IPAddressValidator;
 import com.uom.cse.distsearch.util.MovieList;
 import com.uom.cse.distsearch.util.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletContext;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
@@ -125,7 +125,10 @@ public class Node {
 
         // Spread to the peers
         for (NodeInfo peer : peerList) {
-            post(peer.url() + "search", query);
+            // Don't send to the sender again
+            if (!Objects.equals(peer, sender)) {
+                post(peer.url() + "search", query);
+            }
         }
     }
 
@@ -180,20 +183,22 @@ public class Node {
         Objects.requireNonNull(nodeIP, "Node ip cannot be null");
         Objects.requireNonNull(username, "Username cannot be null");
 
-        if("".equals(serverIP.trim())) {
-            throw new IllegalArgumentException("Bootstrap server ip cannot be empty");
+        if (!IPAddressValidator.validate(serverIP)) {
+            throw new IllegalArgumentException("Bootstrap server ip is not valid");
         }
 
-        if("".equals(nodeIP.trim())) {
-            throw new IllegalArgumentException("Node ip cannot be empty");
+        if (!IPAddressValidator.validate(nodeIP)) {
+            throw new IllegalArgumentException("Node ip is not valid");
         }
 
         this.bootstrapHost = serverIP;
         this.bootstrapPort = serverPort;
         this.currentNodeInfo = new NodeInfo(nodeIP, port, username);
 
+        // Generate the command
         String message = String.format(" REG %s %d %s", nodeIP, port, username);
         message = String.format("%04d", (message.length() + 4)) + message;
+
         try {
             String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
 
@@ -285,6 +290,7 @@ public class Node {
         if (Objects.isNull(currentNodeInfo)) {
             throw new InvalidStateException("Node is registered in the bootstrap server");
         }
+
         // Update other nodes
         final int peerSize = peerList.size();
         for (int i = 0; i < peerSize; i++) {
@@ -294,9 +300,6 @@ public class Node {
             }
             for (int j = 0; j < peerSize; j++) {
                 NodeInfo node = peerList.get(j);
-                if (node.equals(currentNodeInfo)) {
-                    break;
-                }
                 if (i != j) {
                     post(on.url() + "join", node);
                 }
@@ -315,11 +318,7 @@ public class Node {
             StringTokenizer tokenizer = new StringTokenizer(result, " ");
             String length = tokenizer.nextToken();
             String command = tokenizer.nextToken();
-            if (Constant.UNROK.equals(command)) {
-                return true;
-            } else {
-                return false;
-            }
+            return Constant.UNROK.equals(command);
         } catch (IOException e) {
             LOGGER.error(e.getMessage(), e);
             return false;
@@ -334,7 +333,7 @@ public class Node {
     }
 
     private void post(final String url, final Object object) {
-        LOGGER.debug("URL: {}", url);
+        LOGGER.debug("POST URL: {}", url);
         new Thread() {
             @Override
             public void run() {
