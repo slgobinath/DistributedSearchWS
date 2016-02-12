@@ -37,7 +37,6 @@ public class Service {
 
     private Node node = Node.getInstance();
 
-
     @Path("/movies")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
@@ -57,14 +56,14 @@ public class Service {
         return Response.status(Response.Status.OK).entity(lst).build();
     }
 
-    @Path("/connect/{ip}/{username}")
+    @Path("/connect/{serverip}/{serverport}/{userip}/{username}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response connect(@NotNull @PathParam("ip") String ip, @NotNull @PathParam("username") String username) {
+    public Response connect(@NotNull @PathParam("serverip") String serverIP, @NotNull @PathParam("serverport") int serverPort, @NotNull @PathParam("userip") String userip, @NotNull @PathParam("username") String username) {
         LOGGER.debug("Request to connect to the bootstrap server");
         // Connect to the Bootstrap
         Response.Status status = Response.Status.OK;
-        if (!node.connect(ip, httpRequest.getLocalPort(), username)) {
+        if (!node.connect(serverIP, serverPort, userip, httpRequest.getLocalPort(), username)) {
             status = Response.Status.INTERNAL_SERVER_ERROR;
         }
         // Disconnect from the Bootstrap
@@ -117,7 +116,7 @@ public class Service {
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
-    public Response search(@NotNull Query query) {
+    public Response search(@NotNull @Encoded Query query) {
         LOGGER.debug("Request to search {} from {}", query.getQueryInfo().getQuery(), query.getSender());
         node.search(context, query);
         return Response.status(Response.Status.OK).entity(Constant.SEROK).build();
@@ -128,7 +127,12 @@ public class Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public Response results(@NotNull Result result) {
-        LOGGER.info("Movies found at {} are {} after {} hops with {} millis", result.getOwner(), result.getMovies(), result.getHops(), (System.currentTimeMillis() - result.getTimestamp()));
+        int moviesCount = result.getMovies().size();
+
+        String output = String.format("Number of movies: %d\r\nMovies: %s\r\nHops: %d\r\nTime: %s millis\r\nOwner %s:%d",
+                moviesCount, result.getMovies().toString(), result.getHops(), (System.currentTimeMillis() - result.getTimestamp()), result.getOwner().getIp(), result.getOwner().getPort());
+
+        LOGGER.info(output);
         return Response.status(Response.Status.OK).entity("OK").build();
     }
 }

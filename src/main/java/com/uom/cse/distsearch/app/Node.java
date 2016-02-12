@@ -36,6 +36,10 @@ public class Node {
 
     private final List<QueryInfo> queryList = new ArrayList<>();
 
+    public String bootstrapHost;
+
+    public int bootstrapPort;
+
     private NodeInfo currentNodeInfo;
 
     private static class InstanceHolder {
@@ -131,13 +135,15 @@ public class Node {
         }
     }
 
-    public synchronized boolean connect(String ip, int port, String username) {
+    public synchronized boolean connect(String serverIP, int serverPort, String ip, int port, String username) {
+        this.bootstrapHost = serverIP;
+        this.bootstrapPort = serverPort;
         this.currentNodeInfo = new NodeInfo(ip, port, username);
 
         String message = String.format(" REG %s %d %s", ip, port, username);
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
-            String result = Utility.sendTcpToBootstrapServer(message, Constant.BOOTSTRAP_HOST, Constant.BOOTSTRAP_PORT);
+            String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
 
             LOGGER.debug("Connect response is {}", result);
             StringTokenizer tokenizer = new StringTokenizer(result, " ");
@@ -157,8 +163,10 @@ public class Node {
                         LOGGER.debug("Second node registered");
                         String ipAddress = tokenizer.nextToken();
                         int portNumber = Integer.parseInt(tokenizer.nextToken());
+                        // TODO: Test the following line
+                        String userName = tokenizer.nextToken();
 
-                        NodeInfo nodeInfo = new NodeInfo(ipAddress, portNumber);
+                        NodeInfo nodeInfo = new NodeInfo(ipAddress, portNumber, userName);
                         // JOIN to first node
                         join(nodeInfo);
                         post(nodeInfo.url() + "join", new NodeInfo(ip, port));
@@ -222,6 +230,24 @@ public class Node {
     }
 
     public synchronized boolean disconnect() {
+        // Update other nodes
+        final int peerSize = peerList.size();
+        for (int i = 0; i < peerSize; i++) {
+            NodeInfo on = peerList.get(i);
+            if (on.equals(currentNodeInfo)) {
+                continue;
+            }
+            for (int j = 0; j < peerSize; j++) {
+                NodeInfo node = peerList.get(j);
+                if (node.equals(currentNodeInfo)) {
+                    break;
+                }
+                if (i != j) {
+                    post(on.url() + "join", node);
+                }
+            }
+        }
+
         for (NodeInfo peer : peerList) {
             //send leave msg
             post(peer.url() + "leave", currentNodeInfo);
@@ -230,7 +256,7 @@ public class Node {
         String message = String.format(" UNREG %s %d %s", currentNodeInfo.getIp(), currentNodeInfo.getPort(), currentNodeInfo.getUsername());
         message = String.format("%04d", (message.length() + 4)) + message;
         try {
-            String result = Utility.sendTcpToBootstrapServer(message, Constant.BOOTSTRAP_HOST, Constant.BOOTSTRAP_PORT);
+            String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
             StringTokenizer tokenizer = new StringTokenizer(result, " ");
             String length = tokenizer.nextToken();
             String command = tokenizer.nextToken();
