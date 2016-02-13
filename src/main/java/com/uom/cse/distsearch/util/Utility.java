@@ -17,7 +17,7 @@ public class Utility {
         //DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream());
         BufferedReader inFromServer = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
         //sentence = inFromUser.readLine();
-        out.print(message);
+        out.print(message.trim());
         out.flush();
         //outToServer.flush();
         StringBuilder builder = new StringBuilder();

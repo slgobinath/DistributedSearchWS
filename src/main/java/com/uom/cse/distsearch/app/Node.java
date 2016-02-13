@@ -50,6 +50,14 @@ public class Node {
         return InstanceHolder.instance;
     }
 
+    /**
+     * Only use it for testing purposes.
+     *
+     * @return
+     */
+    static Node createInstance() {
+        return new Node();
+    }
 
     public synchronized void join(NodeInfo info) {
         // Validation
@@ -276,27 +284,33 @@ public class Node {
 
                     case 9996:
                         LOGGER.error("Failed to register. BootstrapServer is full.");
+                        this.currentNodeInfo = null;
                         return false;
 
                     case 9997:
                         LOGGER.error("Failed to register. This ip and port is already used by another Node.");
+                        this.currentNodeInfo = null;
                         return false;
 
                     case 9998:
                         LOGGER.error("You are already registered. Please unregister first.");
+                        this.currentNodeInfo = null;
                         return false;
 
                     case 9999:
                         LOGGER.error("Error in the command. Please fix the error");
+                        this.currentNodeInfo = null;
                         return false;
                 }
 
                 return true;
             } else {
+                this.currentNodeInfo = null;
                 return false;
             }
 
         } catch (IOException e) {
+            this.currentNodeInfo = null;
             LOGGER.error(e.getMessage(), e);
             return false;
         }
@@ -335,11 +349,14 @@ public class Node {
             StringTokenizer tokenizer = new StringTokenizer(result, " ");
             String length = tokenizer.nextToken();
             String command = tokenizer.nextToken();
-            return Constant.UNROK.equals(command);
+            if (Constant.UNROK.equals(command)) {
+                this.currentNodeInfo = null;
+                return true;
+            }
         } catch (IOException e) {
             LOGGER.error(e.getMessage(), e);
-            return false;
         }
+        return false;
     }
 
     public synchronized List<NodeInfo> getPeers() {
