@@ -5,9 +5,6 @@
     Apache Tomcat 7 or 8 (Optional)
 
 
-
-
-
 2. Build and Deploy in Apache Tomcat
 ````````````````````````````````````
 The application can be deployed in Apache Tomcat or can be run in embedded Apache Tomcat through Maven.
@@ -23,9 +20,6 @@ B. To compile and build the package
     The target/distsearch.war can be deployed in Apache Tomcat $CATALINA_HOME/webapps
 
 Search results will be printed in $CATALINA_HOME/logs/distributed.log file.
-
-
-
 
 
 3. Available JAX-RS Web service end points:
@@ -54,9 +48,6 @@ List the connected peers:
 Search for a movies in the network:
 ```````````````````````````````````
     http://localhost:8080/distsearch/node/service/searchuser?query=movie
-
-
-
 
 
 Note:
