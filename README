@@ -1,37 +1,48 @@
 1. Software requirements
-`````````````````````
+````````````````````````
     Java 1.8
     Apache Maven
-    Apache Tomcat
+    Apache Tomcat 7 or 8 (Optional)
+
+
+
+
 
 2. Build and Deploy in Apache Tomcat
-`````````````````````````````````
-To compile and build the package
+````````````````````````````````````
+The application can be deployed in Apache Tomcat or can be run in embedded Apache Tomcat through Maven.
 
-    mvn package
-
-The target/distsearch.war can be deployed in Apache Tomcat
-
-or else, you can run the application using embedded Tomcat:
+A. To build and run the application using Maven Tomcat plugin.
 
     mvn clean install tomcat7:run
 
+B. To compile and build the package
+
+    mvn package
+
+    The target/distsearch.war can be deployed in Apache Tomcat $CATALINA_HOME/webapps
+
+Search results will be printed in $CATALINA_HOME/logs/distributed.log file.
+
+
+
+
 
 3. Available JAX-RS Web service end points:
-````````````````````````````````````````
+```````````````````````````````````````````
 
 Connect the node to the bootstrap:
-```````````````````
+``````````````````````````````````
     http://localhost:8080/distsearch/node/service/connect/{bootstrap_server_ip}/{bootstrap_server_port}/{user_ip}/{username}
 
 
 Disconnect the node:
-```````````````````
+````````````````````
     http://localhost:8080/distsearch/node/service/disconnect
 
 
 List the available movies:
-`````````````````````````
+``````````````````````````
     http://localhost:8080/distsearch/node/service/movies
 
 
@@ -43,6 +54,10 @@ List the connected peers:
 Search for a movies in the network:
 ```````````````````````````````````
     http://localhost:8080/distsearch/node/service/searchuser?query=movie
+
+
+
+
 
 Note:
     You cannot search before connecting to the bootstrap server
