@@ -1,6 +1,12 @@
 package com.uom.cse.distsearch.util;
 
 import javax.rmi.CORBA.Util;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.*;
 import java.net.Socket;
 
@@ -22,7 +28,7 @@ public class Utility {
         //outToServer.flush();
         StringBuilder builder = new StringBuilder();
         String line;
-        while((line = inFromServer.readLine()) != null) {
+        while ((line = inFromServer.readLine()) != null) {
             builder.append(line);
         }
         String response = builder.toString().replace("\r\n", " ").replace('\n', ' ').replace("", "");
@@ -30,6 +36,24 @@ public class Utility {
         clientSocket.close();
 
         return response;
+    }
+
+
+    public static void post(final String url, final Object object) {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    WebTarget target = ClientBuilder.newClient().target(url);
+                    Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
+                    Response response = builder.post(Entity.json(object));
+                    int status = response.getStatus();
+                    Object str = response.getEntity();
+                    response.close();
+                } catch (Exception ex) {
+                }
+            }
+        }.start();
     }
 
     /*public static String sendTcpToBootstrapServer(String message, String ip, int port) throws IOException {

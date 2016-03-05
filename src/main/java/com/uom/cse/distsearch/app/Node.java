@@ -11,12 +11,6 @@ import com.uom.cse.distsearch.util.Utility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.*;
 
@@ -64,13 +58,14 @@ public class Node {
         if (Objects.isNull(info)) {
             throw new IllegalArgumentException("NodeInfo cannot be null");
         }
-        if (Objects.equals(info.getIp(), currentNodeInfo.getIp()) && info.getPort() == currentNodeInfo.getPort()) {
-            throw new IllegalArgumentException("Cannot add this node as a peer of itself");
-        }
 
         // State check
         if (Objects.isNull(currentNodeInfo)) {
             throw new InvalidStateException("Node is not registered in the bootstrap server");
+        }
+
+        if (Objects.equals(info.getIp(), currentNodeInfo.getIp()) && info.getPort() == currentNodeInfo.getPort()) {
+            throw new IllegalArgumentException("Cannot add this node as a peer of itself");
         }
 
         LOGGER.debug("Adding {} as a peer of {}", info, currentNodeInfo);
@@ -136,19 +131,22 @@ public class Node {
         result.setTimestamp(info.getTimestamp());
 
         // Send the results
-        post(info.getOrigin().url() + "results", result);
+        Utility.post(info.getOrigin().url() + "results", result);
 
         // Spread to the peers
         for (NodeInfo peer : peerList) {
             // Don't send to the sender again
             if (!Objects.equals(peer, sender)) {
-                post(peer.url() + "search", query);
+                Utility.post(peer.url() + "search", query);
             }
         }
     }
 
     public synchronized void search(MovieList movieList, Query query) {
         // Validation
+        if (Objects.isNull(movieList)) {
+            throw new IllegalArgumentException("MovieList cannot be null");
+        }
         if (Objects.isNull(query) || Objects.isNull(query.getQueryInfo())) {
             throw new IllegalArgumentException("Query or QueryInfo of this query cannot be null");
         }
@@ -181,13 +179,13 @@ public class Node {
         result.setTimestamp(info.getTimestamp());
 
         // Send the results
-        post(info.getOrigin().url() + "results", result);
+        Utility.post(info.getOrigin().url() + "results", result);
 
         // Spread to the peers
         for (NodeInfo peer : peerList) {
             if (!peer.equals(sender)) {
                 LOGGER.debug("Sending request to {}", peer);
-                post(peer.url() + "search", query);
+                Utility.post(peer.url() + "search", query);
             }
         }
     }
@@ -250,7 +248,7 @@ public class Node {
                         NodeInfo nodeInfo = new NodeInfo(ipAddress, portNumber, userName);
                         // JOIN to first node
                         join(nodeInfo);
-                        post(nodeInfo.url() + "join", new NodeInfo(nodeIP, port));
+                        Utility.post(nodeInfo.url() + "join", new NodeInfo(nodeIP, port));
                         break;
 
                     default:
@@ -276,10 +274,10 @@ public class Node {
                         NodeInfo nodeB = returnedNodes.get(1);
 
                         join(nodeA);
-                        post(nodeA.url() + "join", currentNodeInfo);
+                        Utility.post(nodeA.url() + "join", currentNodeInfo);
 
                         join(nodeB);
-                        post(nodeB.url() + "join", currentNodeInfo);
+                        Utility.post(nodeB.url() + "join", currentNodeInfo);
                         break;
 
                     case 9996:
@@ -289,16 +287,6 @@ public class Node {
 
                     case 9997:
                         LOGGER.error("Failed to register. This ip and port is already used by another Node.");
-                        this.currentNodeInfo = null;
-                        return false;
-
-                    case 9998:
-                        LOGGER.error("You are already registered. Please unregister first.");
-                        this.currentNodeInfo = null;
-                        return false;
-
-                    case 9999:
-                        LOGGER.error("Error in the command. Please fix the error");
                         this.currentNodeInfo = null;
                         return false;
                 }
@@ -316,7 +304,7 @@ public class Node {
         }
     }
 
-    public synchronized boolean disconnect() {
+    public synchronized boolean disconnect() throws IOException {
         // State check
         if (Objects.isNull(currentNodeInfo)) {
             throw new InvalidStateException("Node is not registered in the bootstrap server");
@@ -326,37 +314,30 @@ public class Node {
         final int peerSize = peerList.size();
         for (int i = 0; i < peerSize; i++) {
             NodeInfo on = peerList.get(i);
-            if (on.equals(currentNodeInfo)) {
-                continue;
-            }
             for (int j = 0; j < peerSize; j++) {
                 NodeInfo node = peerList.get(j);
                 if (i != j) {
-                    post(on.url() + "join", node);
+                    Utility.post(on.url() + "join", node);
                 }
             }
         }
 
         for (NodeInfo peer : peerList) {
             //send leave msg
-            post(peer.url() + "leave", currentNodeInfo);
+            Utility.post(peer.url() + "leave", currentNodeInfo);
         }
 
         String message = String.format(" UNREG %s %d %s", currentNodeInfo.getIp(), currentNodeInfo.getPort(), currentNodeInfo.getUsername());
         message = String.format("%04d", (message.length() + 4)) + message;
-        try {
-            String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
-            StringTokenizer tokenizer = new StringTokenizer(result, " ");
-            String length = tokenizer.nextToken();
-            String command = tokenizer.nextToken();
-            if (Constant.UNROK.equals(command)) {
-                this.currentNodeInfo = null;
-                return true;
-            }
-        } catch (IOException e) {
-            LOGGER.error(e.getMessage(), e);
+        String result = Utility.sendTcpToBootstrapServer(message, this.bootstrapHost, this.bootstrapPort);
+        StringTokenizer tokenizer = new StringTokenizer(result, " ");
+        String length = tokenizer.nextToken();
+        String command = tokenizer.nextToken();
+        boolean success = Constant.UNROK.equals(command);
+        if (success) {
+            this.currentNodeInfo = null;
         }
-        return false;
+        return success;
     }
 
     public synchronized List<NodeInfo> getPeers() {
@@ -367,24 +348,4 @@ public class Node {
         return peerList;
     }
 
-    private void post(final String url, final Object object) {
-        LOGGER.debug("POST URL: {}", url);
-        new Thread() {
-            @Override
-            public void run() {
-                try {
-                    WebTarget target = ClientBuilder.newClient().target(url);
-                    Invocation.Builder builder = target.request(MediaType.APPLICATION_JSON).accept(MediaType.TEXT_PLAIN);
-                    Response response = builder.post(Entity.json(object));
-                    int status = response.getStatus();
-                    LOGGER.debug("Status: {}", status);
-                    Object str = response.getEntity();
-                    LOGGER.debug("Message: {}", str);
-                    response.close();
-                } catch (Exception ex) {
-                    LOGGER.error("Exception in sending request", ex.getMessage());
-                }
-            }
-        }.start();
-    }
 }

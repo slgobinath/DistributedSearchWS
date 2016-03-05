@@ -17,6 +17,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -74,7 +75,7 @@ public class Service {
     @Path("/disconnect")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response disconnect() {
+    public Response disconnect() throws IOException {
         LOGGER.debug("Request to disconnect from the bootstrap server");
         Response.Status status = Response.Status.OK;
         if (!node.disconnect()) {

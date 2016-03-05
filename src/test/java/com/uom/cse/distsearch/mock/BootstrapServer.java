@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  */
 public class BootstrapServer {
     private boolean failed;
+    private boolean full;
 
     private ServerSocket welcomeSocket;
     private static List<Neighbour> nodes = new ArrayList<Neighbour>();
@@ -32,6 +33,10 @@ public class BootstrapServer {
     public String process(String s) {
         if (failed) {
             return "0010 ERROR";
+        }
+
+        if (full) {
+            return "0114 REGOK 9996";
         }
 
         StringTokenizer st = new StringTokenizer(s, " ");
@@ -155,6 +160,14 @@ public class BootstrapServer {
 
     public void setFailed(boolean failed) {
         this.failed = failed;
+    }
+
+    public boolean isFull() {
+        return full;
+    }
+
+    public void setFull(boolean full) {
+        this.full = full;
     }
 
     private static class Neighbour {
